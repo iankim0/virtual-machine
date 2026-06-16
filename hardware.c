@@ -41,3 +41,4 @@ enum
         FL_ZRO = 1 << 1,    //zero                                                                                            
         FL_NEG = 1 << 2,    //negative                                                                                        
 };                                                
+ 
