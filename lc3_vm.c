@@ -124,6 +124,7 @@ int main(int argc, const char* argv[])
 					uint16_t r1 = (instruction >> 6) & 0x7; //first number to be added
 					uint16_t imm_flag = (instruction >> 5) & 0x1; //checks to see what add mode we are in
 					
+					//If the add is immediate, we sign extend the number before we add
 					if (imm_flag) {
 						uint16_t number = (instruction & 0x1F);	
 						uint16_t extendedNumber = sign_extend(number, 5);
@@ -135,11 +136,42 @@ int main(int argc, const char* argv[])
 					
 					update_flags(r0);
 				}
-			case OP_AND:
 				break;
+			case OP_AND:
+				{
+					uint16_t r0 = (instruction >> 9) & 0x7; //storing the destination register into r0
+					uint16_t r1 = (instruction >> 6) & 0x7; //register storing the first number 
+					uint16_t imm_flag = (instruction >> 5) & 0x1; //checking if the imm flag is set
+					
+					//if the imm flag is set, we treat second operand as an immediate value, otherwise we pull from sr2
+					if (imm_flag) {
+						uint16_t number = (instruction & 0x1F);
+						uint16_t extendedNumber = sign_extend(number, 5);
+						reg[r0] = reg[r1] & extendedNumber;
+					} else {
+						uint16_t r2 = (instruction & 0x7);
+						reg[r0] = reg[r1] & reg[r2];
+					}
+				
+					update_flags(r0);
+				}
+				break
 			case OP_NOT:
 				break;
 			case OP_BR:
+				{
+					//Grabbing all the condition codes 
+					uint16_t n = (instruction >> 11) & 0x1;
+					uint16_t z = (instruction >> 10) & 0x1;
+					uint16_t p = (instruction >> 9) & 0x1;
+					
+					//checking if any of them are set - if they are, check what cond flag is set to 
+					if ((n && (reg[R_COND] & FL_NEG) || (z && (reg[R_COND] & FL_ZRO)) || (p && (reg[R_COND] & FL_POS)) {
+						uint16_t number = (instruction & 0x1FF);
+						uint16_t offset = sign_extend(number, 9);
+						reg[R_PC] += offset;
+					} 		
+				}
 				break;
 			case OP_JMP:
 				break;
@@ -148,6 +180,14 @@ int main(int argc, const char* argv[])
 			case OP_LD:
 				break;
 			case OP_LDI:
+				{
+					uint16_t r0 = (instruction >> 9) & 0x7; //Destination register 
+					uint16_t number = (instruction & 0x1FF); //immediate value masked from instruction
+					uint16_t offset = sign_extend(number, 9); //the offset we add to pc 
+					
+					reg[r0] = memory_read(memory_read(reg[R_PC] + offset));
+					update_flags(r0);
+				}
 				break;
 			case OP_LDR:
 				break;
