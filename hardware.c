@@ -1,0 +1,43 @@
+#include <stdio.h>
+#include <stdint.h>
+#include <signal.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/time.h>
+#include <sys/types.h>
+#include <sys/termios.h>
+#include <sys/mman.h>
+//LC3 has 65536 memory locations (2^16)
+#define MEMORY_MAX (1 << 16)
+//Memory addresses will be stored in arrays
+uint16_t memory[MEMORY_MAX];
+//Register array                                                                                                                             
+uint16_t reg[R_COUNT];                                                                                                        
+//Opcodes - LC3 has 16 
+enum                                                                                                                          
+{                                                                                                                             
+        OP_BR = 0, //branch                                                                                                   
+        OP_ADD,    //add                                                                                                      
+        OP_LD,     //load                                                                                                     
+        OP_ST,     //store                                                                                                    
+        OP_JR,     //jump register                                                                                            
+        OP_AND,    //bitwise and                                                                                              
+        OP_LDR,    //load register                                                                                            
+        OP_STR,    //store register                                                                                           
+        OP_UN,     //unused                                                                                                   
+        OP_NOT,    //bitwise not                                                                                              
+        OP_LDI,    //load indirect                                                                                            
+        OP_STI,    //store indirect                                                                                           
+        OP_JMP,    //jump                                                                                                     
+        OP_RES,    //reserved (unused)                                                                                        
+        OP_LEA,    //load effective address                                                                                   
+        OP_TRAP,   //execute trap                                                                                             
+};                                                                                                                            
+//Conditional flags for the COND register                                                                                     
+enum                                                                                                                          
+{                                                                                                                             
+        FL_POS = 1 << 0,   //positive                                                                                         
+        FL_ZRO = 1 << 1,    //zero                                                                                            
+        FL_NEG = 1 << 2,    //negative                                                                                        
+};                                                
