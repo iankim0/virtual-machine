@@ -157,6 +157,15 @@ int main(int argc, const char* argv[])
 				}
 				break
 			case OP_NOT:
+				{
+					//Grabbing the destination register and the source register
+					uint16_t dr = (instruction >> 9) & 0x7;
+					uint16_t sr = (instruction >> 6) & 0x7;
+					
+					//Storing the bitwise complement of reg[sr] into dr and setting condition codes
+					reg[dr] = ~(reg[sr]);
+					update_flags(dr);
+				}
 				break;
 			case OP_BR:
 				{
@@ -174,24 +183,83 @@ int main(int argc, const char* argv[])
 				}
 				break;
 			case OP_JMP:
+				{
+					//Check if we are doing a normal jump or ret
+					uint16_t baseR = (instructions >> 6) & 0x7;
+
+					//If baseR is 7 then we jump to address in R7, otherwise jump to address in BaseR
+					if (baseR == 0x7) {
+						reg[R_PC] = reg[R_R7];
+					} else {
+						reg[R_PC] =  reg[baseR];
+					}
+				}
 				break;
 			case OP_JR:
+				{
+					//Check if we are in JSR or JSRR
+					uint16_t mode = (instructions >> 11) & 0x1;
+					//Store the PC into R7
+					reg[R_R7] = reg[R_PC];
+
+					//If mode is set, we are in JSR - add the pcoffset11 value to pc
+					//Otherwise we are in JSRR - set the PC to the address stored in Base Register
+					if (mode) {
+						uint16_t number = (instructions & 0x07FF);
+						uint16_t offset = sign_extend(number, 11);
+						reg[R_PC] += offset;
+					} else {
+						uint16_t baseR = (instructions >> 6) & 0x7;
+						reg[R_PC] += reg[baseR];
+					}
+				}
 				break;
 			case OP_LD:
+				{
+					//Destination register
+					uint16_t dr = (instructions >> 9) & 0x7;
+					//Offset - sign extended
+					uint16_t number = (instructions & 0x1FF);
+					uint16_t offset = sign_extend(number, 9);
+					
+					reg[dr] = memory_read(reg[R_PC] + offset);
+					update_flags(dr);	
 				break;
 			case OP_LDI:
 				{
-					uint16_t r0 = (instruction >> 9) & 0x7; //Destination register 
+					uint16_t dr = (instruction >> 9) & 0x7; //Destination register 
 					uint16_t number = (instruction & 0x1FF); //immediate value masked from instruction
 					uint16_t offset = sign_extend(number, 9); //the offset we add to pc 
 					
-					reg[r0] = memory_read(memory_read(reg[R_PC] + offset));
-					update_flags(r0);
+					reg[dr] = memory_read(memory_read(reg[R_PC] + offset));
+					update_flags(dr);
 				}
 				break;
 			case OP_LDR:
+				{
+					//Grabbing destination, base, and sign extending the offset
+					uint16_t dr = (instructions >> 9) & 0x7;
+					uint16_t baseR = (instructions >> 6) & 0x7;
+					uint16_t number = (instructions & 0x3F);
+					uint16_t offset = sign_extend(number, 6)
+					
+					//Load the value from baseR + offset into DR, set condition codes
+					reg[dr] = memory_read(reg[baseR] + offset);
+					update_flags(dr);	
+				}
 				break;
 			case OP_LEA:
+				{
+					//Grabbing destination register
+					uint16_t dr = (instructions >> 9) & 0x7;
+					//Grabbing the offset 
+					uint16_t number = (instructions & 0x1FF);
+					uint16_t offset = sign_extend(number, 9);
+					
+					//store the address at PC + offset into dr and set condition codes
+					reg[dr] = reg[R_PC] + offset;
+					update_flags(dr);
+				}
 				break;
 			case OP_ST:
 				break;
