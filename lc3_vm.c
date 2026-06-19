@@ -60,6 +60,17 @@ enum
         FL_NEG = 1 << 2,    //negative                                                                                        
 };                                                
 
+//TRAP codes
+enum
+{
+	TRAP_GETC = 0x20,   //Read a single character from keyboard - not echoed
+	TRAP_OUT = 0x21,    //Write a character to console
+	TRAP_PUTS = 0x22,   //Write a string to console - word form
+	TRAP_IN = 0x23,     //Print a prompt and read a character - not echoed
+	TRAP_PUTSP = 0x24,  //Write a string to console - byte form
+	TRAP_HALT = 0x25,   //Halt execution and print to console
+};
+
 int main(int argc, const char* argv[])
 {
 	//Usage check
@@ -262,12 +273,84 @@ int main(int argc, const char* argv[])
 				}
 				break;
 			case OP_ST:
+				{
+					//Grabbing the source register
+					uint16_t sr = (instructions >> 9) & 0x7;
+					
+					//Calculating the destination in memory
+					uint16_t number = (instructions & 0x1FF);
+					uint16_t offset = sign_extend(number, 9);
+					uint16_t location = reg[R_PC] + offset;
+				
+					//Store contents of SR into location
+					memory_write(location, reg[sr]);	
+				}
 				break;
 			case OP_STI:
+				{
+					//Grabbing the source register
+					uint16_t sr = (instructions >> 9) & 0x7;
+				
+					//Calculating the destination of the address
+					uint16_t number = (instructions & 0x1FF);
+					uint16_t offset = sign_extend(number, 9);
+					uint16_t adrLocation = reg[R_PC] + offset;
+
+					//Store SR contents into the address found in adrLocation
+					memory_write(memory_read(adrLocation), reg[sr]);
+				}		
 				break;
 			case OP_STR:
+				{
+					//Grabbing the source register and base register
+					uint16_t sr = (instructions >> 9) & 0x7;
+					uint16_t br = (instructions >> 6) & 0x7;
+					
+					//Calculating the destination address
+					uint16_t number = (instructions & 0x3F);
+					uint16_t offset = sign_extend(number, 6);
+					uint16_t location = reg[br] + offset;
+					
+					//Storing sr contents into location
+					memory_write(location, reg[sr]);
+				}
 				break;	
 			case OP_TRAP:
+				{
+					//Storing PC into R7 and grabbing the trapvect8
+					reg[R_R7] = reg[R_PC];
+					uint16_t tv8 = (instructions & 0xFF);
+					
+					switch (tv8)
+					{
+						case TRAP_GETC:
+							break;
+						case TRAP_OUT:
+							break;
+						case TRAP_PUTS:
+							{
+								//each char is a word
+								uint16_t* c = memory + reg[R_R0];
+							
+								//while c is a valid memory address, cast and print out each value
+								while (*c) 
+								{
+									putc((char)*c, stdout);
+									++c;
+								}
+								fflush(stdout);
+							}
+							break;
+						case TRAP_IN:
+							break;
+						case TRAP_PUTSP:
+							break;
+						case TRAP_HALT:
+							break;
+					}
+					//Loading the tv8 address into PC
+					reg[R_PC] = tv8;
+				}
 				break;
 			case OP_RES:
 			case OP_RTI:
