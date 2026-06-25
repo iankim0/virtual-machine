@@ -324,8 +324,18 @@ int main(int argc, const char* argv[])
 					switch (tv8)
 					{
 						case TRAP_GETC:
+							{
+								//Read a character from input and update flags 
+								reg[R_R0] = (uint16_t)getchar();
+								update_flags(R_R0);
+							}
 							break;
 						case TRAP_OUT:
+							{
+								//cast R0 to character (from ASCII) and print to console
+								putc((char)reg[R_R0], stdout);
+								fflush(stdout);
+							}
 							break;
 						case TRAP_PUTS:
 							{
@@ -342,10 +352,48 @@ int main(int argc, const char* argv[])
 							}
 							break;
 						case TRAP_IN:
+							{
+								//Print prompt and receive + echo input
+								printf("Enter a character: ");
+								char c = getchar();
+								putc(c, stdout);
+								fflush(stdout);
+						
+								//Store input as ASCII into R0
+								reg[R_R0] = (uint16_t)c;
+								update_flags(R_R0);
+							}
 							break;
 						case TRAP_PUTSP:
+							{
+								//each character is a byte
+								uint16_t* c = memory + reg[R_R0];
+			
+								//keep reading until null terminated
+								while (*c) 
+								{
+									//print the first character in the word (7:0 first, then 15:8)
+									char c1 = ((*c) & 0xFF);
+									putc(c1, stdout);
+														
+									//grab the next byte and print if it is not null			
+									char c2 = (((*c) >> 8) & 0xFF);
+									if (c2) {
+										putc(c2, stdout);
+									}
+						
+									//move to the next word
+									++c;
+								}
+								fflush(stdout);				
+							}
 							break;
 						case TRAP_HALT:
+							{
+								puts("HALT");
+								fflush(stdout);
+								running = 0;
+							}									
 							break;
 					}
 					//Loading the tv8 address into PC
